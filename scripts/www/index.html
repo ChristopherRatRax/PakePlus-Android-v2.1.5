@@ -1,11 +1,1195 @@
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>PakePlus</title>
-    </head>
-    <body>
-        PakePlus
-    </body>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>列車運転記録 | JR東日本</title>
+    
+    <!-- PWA 支持 -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#007b3e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="列车记录">
+    <link rel="apple-touch-icon" href="icon-192x192.png">
+    
+    <!-- iOS 启动画面 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.544.0/dist/umd/lucide.min.js"></script>
+    <style>
+        :root {
+            --jr-green: #007b3e;
+            --jr-green-dark: #006935;
+            --jr-green-light: #e6f2ed;
+            --jr-red: #d30000;
+            --jr-gray: #f5f5f5;
+            --jr-gray-dark: #333333;
+        }
+        body {
+            font-family: 'Microsoft YaHei', 'Hiragino Sans', sans-serif;
+            color: #333;
+            background-color: #fff;
+        }
+        .jr-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+        .jr-nav {
+            background-color: var(--jr-green);
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .jr-nav a {
+            color: white;
+            transition: background-color 0.3s;
+        }
+        .jr-nav a:hover {
+            background-color: var(--jr-green-dark);
+        }
+        .jr-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .jr-card-header {
+            background-color: var(--jr-green-light);
+            color: var(--jr-green);
+            font-weight: bold;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .jr-card-body {
+            padding: 1rem;
+        }
+        .jr-btn {
+            background-color: var(--jr-green);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .jr-btn:hover {
+            background-color: var(--jr-green-dark);
+        }
+        .jr-btn-danger {
+            background-color: var(--jr-red);
+        }
+        .jr-btn-danger:hover {
+            background-color: #b30000;
+        }
+        .jr-input {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 0.5rem;
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+        .jr-input:focus {
+            outline: none;
+            border-color: var(--jr-green);
+        }
+        .jr-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+        .jr-section {
+            margin-bottom: 2rem;
+        }
+        .jr-tag {
+            background-color: var(--jr-green);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.875rem;
+        }
+        .jr-divider {
+            border-top: 1px solid #e0e0e0;
+            margin: 1rem 0;
+        }
+        .jr-form-group {
+            margin-bottom: 1rem;
+        }
+        .jr-required {
+            color: var(--jr-red);
+        }
+        .jr-photo-thumbnail {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+            border: 1px solid #e0e0e0;
+        }
+        .jr-tabs {
+            display: flex;
+            border-bottom: 1px solid #e0e0e0;
+            margin-bottom: 1rem;
+        }
+        .jr-tab {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+        }
+        .jr-tab.active {
+            border-bottom-color: var(--jr-green);
+            color: var(--jr-green);
+            font-weight: bold;
+        }
+        .jr-stat-card {
+            text-align: center;
+            padding: 1rem;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+        }
+        .jr-stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--jr-green);
+        }
+        .jr-stat-label {
+            color: #666;
+        }
+        .jr-record-item {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .jr-record-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <!-- ナビゲーションバー -->
+    <nav class="jr-nav">
+        <div class="jr-container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i data-lucide="train" class="w-8 h-8"></i>
+                <span class="text-xl font-bold" data-translate="app-title">列車運転記録</span>
+            </div>
+            <div class="hidden md:flex space-x-4">
+                <a href="#" class="px-3 py-2 rounded" data-view="list" data-translate="nav-list">運転記録一覧</a>
+                <a href="#" class="px-3 py-2 rounded" data-view="add" data-translate="nav-add">新規記録</a>
+                <a href="#" class="px-3 py-2 rounded" data-view="stats" data-translate="nav-stats">データ統計</a>
+                <a href="#" class="px-3 py-2 rounded" data-view="settings" data-translate="nav-settings">設定</a>
+            </div>
+            <div class="flex items-center space-x-2">
+                <!-- 言語切り替えボタン -->
+                <button id="lang-toggle" class="px-3 py-2 rounded bg-white bg-opacity-20 hover:bg-opacity-30 transition-colors">
+                    <span class="text-sm font-medium">中/日</span>
+                </button>
+                <!-- PWA 安装按钮 -->
+                <button id="install-button" class="px-3 py-2 rounded bg-white bg-opacity-20 hover:bg-opacity-30 transition-colors hidden">
+                    <i data-lucide="download" class="w-4 h-4 inline mr-1"></i>
+                    <span class="text-sm" data-translate="install-app">安装应用</span>
+                </button>
+                <button class="md:hidden" id="mobile-menu-button">
+                    <i data-lucide="menu" class="w-6 h-6"></i>
+                </button>
+            </div>
+        </div>
+        <!-- モバイルメニュー -->
+        <div class="md:hidden hidden" id="mobile-menu">
+            <div class="px-2 pt-2 pb-3 space-y-1">
+                <a href="#" class="block px-3 py-2 rounded" data-view="list" data-translate="nav-list">運転記録一覧</a>
+                <a href="#" class="block px-3 py-2 rounded" data-view="add" data-translate="nav-add">新規記録</a>
+                <a href="#" class="block px-3 py-2 rounded" data-view="stats" data-translate="nav-stats">データ統計</a>
+                <a href="#" class="block px-3 py-2 rounded" data-view="settings" data-translate="nav-settings">設定</a>
+                <div class="border-t border-white border-opacity-20 pt-2 mt-2">
+                    <button id="mobile-lang-toggle" class="block w-full text-left px-3 py-2 rounded">
+                        <span class="text-sm" data-translate="language-toggle">中文/日本語</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- メインコンテンツ -->
+    <main class="jr-container mx-auto px-4 py-8">
+        <!-- リストビュー -->
+        <div id="list-view" class="view-content">
+            <div class="flex justify-between items-center mb-4">
+                <h1 class="text-2xl font-bold" data-translate="list-title">運転記録一覧</h1>
+                <div class="flex space-x-2">
+                    <input type="text" id="search-input" class="jr-input" data-translate-placeholder="search-placeholder" placeholder="検索...">
+                    <select id="filter-select" class="jr-input">
+                        <option value="" data-translate="filter-all">すべて</option>
+                        <option value="date" data-translate="filter-date">日付</option>
+                        <option value="train" data-translate="filter-train">列車番号</option>
+                        <option value="route" data-translate="filter-route">区間</option>
+                    </select>
+                </div>
+            </div>
+            <div id="records-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- 記録アイテムがここに追加されます -->
+            </div>
+        </div>
+
+        <!-- 追加ビュー -->
+        <div id="add-view" class="view-content hidden">
+            <h1 class="text-2xl font-bold mb-4" data-translate="add-title">新規運転記録</h1>
+            <form id="record-form">
+                <!-- 必須項目 -->
+                <div class="jr-card mb-4">
+                    <div class="jr-card-header">
+                        <i data-lucide="alert-circle" class="w-5 h-5 inline mr-2"></i>
+                        <span data-translate="required-items">必須項目</span>
+                    </div>
+                    <div class="jr-card-body">
+                        <div class="jr-form-group">
+                            <label class="jr-label" for="record-date">
+                                <span data-translate="label-date">運転日付</span> <span class="jr-required">*</span>
+                            </label>
+                            <input type="date" id="record-date" class="jr-input" required>
+                        </div>
+                        <div class="jr-form-group">
+                            <label class="jr-label" for="train-number">
+                                <span data-translate="label-train-number">列車番号</span> <span class="jr-required">*</span>
+                            </label>
+                            <input type="text" id="train-number" class="jr-input" 
+                                   data-translate-placeholder="placeholder-train-number"
+                                   placeholder="例: E235系 山手線 10番台" required>
+                        </div>
+                        <div class="jr-form-group">
+                            <label class="jr-label" for="route">
+                                <span data-translate="label-route">走行区間</span> <span class="jr-required">*</span>
+                            </label>
+                            <input type="text" id="route" class="jr-input" 
+                                   data-translate-placeholder="placeholder-route"
+                                   placeholder="例: 東京→新宿" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 追加項目 -->
+                <div class="jr-card mb-4">
+                    <div class="jr-card-header" data-translate="additional-items">追加項目</div>
+                    <div class="jr-card-body">
+                        <div class="jr-form-group">
+                            <label class="jr-label" for="operator" data-translate="label-operator">列車担当</label>
+                            <input type="text" id="operator" class="jr-input" 
+                                   data-translate-placeholder="placeholder-operator"
+                                   placeholder="例: JR東日本東京支社">
+                        </div>
+                        <div class="jr-form-group">
+                            <label class="jr-label" for="car-seat" data-translate="label-car-seat">車両 / 座席</label>
+                            <input type="text" id="car-seat" class="jr-input" 
+                                   data-translate-placeholder="placeholder-car-seat"
+                                   placeholder="例: 3号車 自由席">
+                        </div>
+                        <div class="jr-form-group">
+                            <label class="jr-label" for="train-type" data-translate="label-train-type">列車型式</label>
+                            <input type="text" id="train-type" class="jr-input" 
+                                   data-translate-placeholder="placeholder-train-type"
+                                   placeholder="例: E231系">
+                        </div>
+                        <div class="jr-form-group">
+                            <label class="jr-label" for="notes" data-translate="label-notes">運転備考</label>
+                            <textarea id="notes" class="jr-input" rows="3" 
+                                      data-translate-placeholder="placeholder-notes"
+                                      placeholder="備考を入力してください"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 写真アップロード -->
+                <div class="jr-card mb-4">
+                    <div class="jr-card-header" data-translate="photo-upload">写真アップロード</div>
+                    <div class="jr-card-body">
+                        <input type="file" id="photo-upload" multiple accept="image/*" class="hidden">
+                        <button type="button" class="jr-btn" onclick="document.getElementById('photo-upload').click()">
+                            <i data-lucide="upload" class="w-5 h-5 inline mr-2"></i>
+                            <span data-translate="upload-button">運転写真をアップロード</span>
+                        </button>
+                        <div id="photo-preview" class="mt-4 flex flex-wrap"></div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end">
+                    <button type="submit" class="jr-btn">
+                        <i data-lucide="save" class="w-5 h-5 inline mr-2"></i>
+                        <span data-translate="save-button">記録を保存</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- 統計ビュー -->
+        <div id="stats-view" class="view-content hidden">
+            <h1 class="text-2xl font-bold mb-4" data-translate="stats-title">データ統計</h1>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="jr-stat-card">
+                    <i data-lucide="calendar" class="w-12 h-12 mx-auto text-green-600 mb-2"></i>
+                    <div class="jr-stat-value" id="total-records">0</div>
+                    <div class="jr-stat-label" data-translate="stat-total-records">総運転回数</div>
+                </div>
+                <div class="jr-stat-card">
+                    <i data-lucide="train" class="w-12 h-12 mx-auto text-green-600 mb-2"></i>
+                    <div class="jr-stat-value" id="total-trains">0</div>
+                    <div class="jr-stat-label" data-translate="stat-total-trains">異なる列車数</div>
+                </div>
+                <div class="jr-stat-card">
+                    <i data-lucide="map" class="w-12 h-12 mx-auto text-green-600 mb-2"></i>
+                    <div class="jr-stat-value" id="total-routes">0</div>
+                    <div class="jr-stat-label" data-translate="stat-total-routes">異なる区間数</div>
+                </div>
+            </div>
+            <div class="jr-card">
+                <div class="jr-card-header" data-translate="monthly-stats">月間運転回数</div>
+                <div class="jr-card-body">
+                    <canvas id="monthly-chart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 設定ビュー -->
+        <div id="settings-view" class="view-content hidden">
+            <h1 class="text-2xl font-bold mb-4" data-translate="settings-title">設定</h1>
+            <div class="jr-card">
+                <div class="jr-card-header" data-translate="app-settings">アプリケーション設定</div>
+                <div class="jr-card-body">
+                    <div class="jr-form-group">
+                        <label class="jr-label" data-translate="export-data-label">データのエクスポート</label>
+                        <button id="export-data" class="jr-btn">
+                            <i data-lucide="download" class="w-5 h-5 inline mr-2"></i>
+                            <span data-translate="export-data-button">データをエクスポート</span>
+                        </button>
+                    </div>
+                    <div class="jr-form-group">
+                        <label class="jr-label" data-translate="import-data-label">データのインポート</label>
+                        <input type="file" id="import-data" accept=".json" class="hidden">
+                        <button onclick="document.getElementById('import-data').click()" class="jr-btn">
+                            <i data-lucide="upload" class="w-5 h-5 inline mr-2"></i>
+                            <span data-translate="import-data-button">データをインポート</span>
+                        </button>
+                    </div>
+                    <div class="jr-form-group">
+                        <label class="jr-label" data-translate="clear-data-label">すべてのデータを削除</label>
+                        <button id="clear-data" class="jr-btn jr-btn-danger">
+                            <i data-lucide="trash-2" class="w-5 h-5 inline mr-2"></i>
+                            <span data-translate="clear-data-button">すべてのデータを削除</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 詳細ビュー -->
+        <div id="detail-view" class="view-content hidden">
+            <button class="jr-btn mb-4" onclick="showView('list')">
+                <i data-lucide="arrow-left" class="w-5 h-5 inline mr-2"></i>
+                <span data-translate="back-button">戻る</span>
+            </button>
+            <div id="record-detail" class="jr-card">
+                <!-- 記録の詳細がここに表示されます -->
+            </div>
+        </div>
+    </main>
+
+    <!-- フッター -->
+    <footer class="bg-gray-100 border-t">
+        <div class="jr-container mx-auto px-4 py-6">
+            <div class="text-center text-gray-600">
+                <p data-translate="footer-copyright">列車運転記録アプリ © 2025</p>
+                <p class="text-sm mt-2" data-translate="footer-disclaimer">このアプリケーションはJR東日本の公式アプリケーションではありません。</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <script>
+        // 双语语言包
+        const translations = {
+            ja: {
+                'app-title': '列車運転記録',
+                'nav-list': '運転記録一覧',
+                'nav-add': '新規記録',
+                'nav-stats': 'データ統計',
+                'nav-settings': '設定',
+                'language-toggle': '中文/日本語',
+                'install-app': 'アプリをインストール',
+                'install-prompt': '列車記録アプリをインストールしますか？',
+                'install': 'インストール',
+                'later': 'あとで',
+                
+                // 列表页面
+                'list-title': '運転記録一覧',
+                'search-placeholder': '検索...',
+                'filter-all': 'すべて',
+                'filter-date': '日付',
+                'filter-train': '列車番号',
+                'filter-route': '区間',
+                
+                // 添加记录页面
+                'add-title': '新規運転記録',
+                'required-items': '必須項目',
+                'additional-items': '追加項目',
+                'photo-upload': '写真アップロード',
+                'upload-button': '運転写真をアップロード',
+                'save-button': '記録を保存',
+                
+                'label-date': '運転日付',
+                'label-train-number': '列車番号',
+                'label-route': '走行区間',
+                'label-operator': '列車担当',
+                'label-car-seat': '車両 / 座席',
+                'label-train-type': '列車型式',
+                'label-notes': '運転備考',
+                
+                'placeholder-train-number': '例: E235系 山手線 10番台',
+                'placeholder-route': '例: 東京→新宿',
+                'placeholder-operator': '例: JR東日本東京支社',
+                'placeholder-car-seat': '例: 3号車 自由席',
+                'placeholder-train-type': '例: E231系',
+                'placeholder-notes': '備考を入力してください',
+                
+                // 统计页面
+                'stats-title': 'データ統計',
+                'stat-total-records': '総運転回数',
+                'stat-total-trains': '異なる列車数',
+                'stat-total-routes': '異なる区間数',
+                'monthly-stats': '月間運転回数',
+                
+                // 设置页面
+                'settings-title': '設定',
+                'app-settings': 'アプリケーション設定',
+                'export-data-label': 'データのエクスポート',
+                'export-data-button': 'データをエクスポート',
+                'import-data-label': 'データのインポート',
+                'import-data-button': 'データをインポート',
+                'clear-data-label': 'すべてのデータを削除',
+                'clear-data-button': 'すべてのデータを削除',
+                
+                // 其他
+                'back-button': '戻る',
+                'footer-copyright': '列車運転記録アプリ © 2025',
+                'footer-disclaimer': 'このアプリケーションはJR東日本の公式アプリケーションではありません。'
+            },
+            zh: {
+                'app-title': '列车运行记录',
+                'nav-list': '运行记录列表',
+                'nav-add': '新建记录',
+                'nav-stats': '数据统计',
+                'nav-settings': '设置',
+                'language-toggle': '中文/日本語',
+                'install-app': '安装应用',
+                'install-prompt': '是否安装列车记录应用？',
+                'install': '安装',
+                'later': '稍后',
+                
+                // 列表页面
+                'list-title': '运行记录列表',
+                'search-placeholder': '搜索...',
+                'filter-all': '全部',
+                'filter-date': '日期',
+                'filter-train': '列车号',
+                'filter-route': '区间',
+                
+                // 添加记录页面
+                'add-title': '新建运行记录',
+                'required-items': '必填项目',
+                'additional-items': '附加项目',
+                'photo-upload': '照片上传',
+                'upload-button': '上传运行照片',
+                'save-button': '保存记录',
+                
+                'label-date': '运行日期',
+                'label-train-number': '列车号',
+                'label-route': '运行区间',
+                'label-operator': '列车担当',
+                'label-car-seat': '车辆 / 座位',
+                'label-train-type': '列车型号',
+                'label-notes': '运行备注',
+                
+                'placeholder-train-number': '例: E235系 山手线 10号车',
+                'placeholder-route': '例: 东京→新宿',
+                'placeholder-operator': '例: JR东日本东京支社',
+                'placeholder-car-seat': '例: 3号车 自由席',
+                'placeholder-train-type': '例: E231系',
+                'placeholder-notes': '请输入备注',
+                
+                // 统计页面
+                'stats-title': '数据统计',
+                'stat-total-records': '总运行次数',
+                'stat-total-trains': '不同列车数',
+                'stat-total-routes': '不同区间数',
+                'monthly-stats': '月度运行次数',
+                
+                // 设置页面
+                'settings-title': '设置',
+                'app-settings': '应用程序设置',
+                'export-data-label': '导出数据',
+                'export-data-button': '导出数据',
+                'import-data-label': '导入数据',
+                'import-data-button': '导入数据',
+                'clear-data-label': '删除所有数据',
+                'clear-data-button': '删除所有数据',
+                
+                // 其他
+                'back-button': '返回',
+                'footer-copyright': '列车运行记录应用 © 2025',
+                'footer-disclaimer': '此应用程序不是JR东日本的官方应用程序。'
+            }
+        };
+
+        // 当前语言
+        let currentLanguage = localStorage.getItem('trainAppLanguage') || 'ja';
+
+        // 翻译函数
+        function translate(key) {
+            return translations[currentLanguage][key] || key;
+        }
+
+        // 更新页面语言
+        function updateLanguage() {
+            // 更新文本
+            document.querySelectorAll('[data-translate]').forEach(element => {
+                const key = element.getAttribute('data-translate');
+                element.textContent = translate(key);
+            });
+
+            // 更新占位符
+            document.querySelectorAll('[data-translate-placeholder]').forEach(element => {
+                const key = element.getAttribute('data-translate-placeholder');
+                element.placeholder = translate(key);
+            });
+
+            // 更新HTML lang属性
+            document.documentElement.lang = currentLanguage === 'ja' ? 'ja' : 'zh';
+            
+            // 保存语言设置
+            localStorage.setItem('trainAppLanguage', currentLanguage);
+        }
+
+        // 切换语言
+        function toggleLanguage() {
+            currentLanguage = currentLanguage === 'ja' ? 'zh' : 'ja';
+            updateLanguage();
+        }
+
+        // PWA Service Worker 注册
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(function(registration) {
+                        console.log('ServiceWorker registration successful');
+                    }, function(err) {
+                        console.log('ServiceWorker registration failed');
+                    });
+            });
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            lucide.createIcons();
+            updateLanguage(); // 初始化语言设置
+            initApp();
+            
+            // 语言切换按钮事件
+            document.getElementById('lang-toggle').addEventListener('click', toggleLanguage);
+            document.getElementById('mobile-lang-toggle').addEventListener('click', function() {
+                toggleLanguage();
+                // 移动端切换语言后关闭菜单
+                document.getElementById('mobile-menu').classList.add('hidden');
+            });
+        });
+
+        // モバイルメニュー
+        document.getElementById('mobile-menu-button').addEventListener('click', function() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        });
+
+        // ビューの切り替え
+        document.querySelectorAll('[data-view]').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const view = this.getAttribute('data-view');
+                showView(view);
+                // モバイルメニューを閉じる
+                document.getElementById('mobile-menu').classList.add('hidden');
+            });
+        });
+
+        function showView(viewName) {
+            document.querySelectorAll('.view-content').forEach(view => {
+                view.classList.add('hidden');
+            });
+            document.getElementById(`${viewName}-view`).classList.remove('hidden');
+            
+            // ナビゲーションのアクティブ状態を更新
+            document.querySelectorAll('[data-view]').forEach(link => {
+                if (link.getAttribute('data-view') === viewName) {
+                    link.classList.add('bg-opacity-20', 'bg-white');
+                } else {
+                    link.classList.remove('bg-opacity-20', 'bg-white');
+                }
+            });
+
+            // 統計ビューの更新
+            if (viewName === 'stats') {
+                updateStats();
+            }
+        }
+
+        // アプリケーションの初期化
+        function initApp() {
+            loadRecords();
+            setupEventListeners();
+            // 今日の日付を設定
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            document.getElementById('record-date').value = `${yyyy}-${mm}-${dd}`;
+        }
+
+        // イベントリスナーの設定
+        function setupEventListeners() {
+            // フォームの送信
+            document.getElementById('record-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                saveRecord();
+            });
+
+            // 検索とフィルタリング
+            document.getElementById('search-input').addEventListener('input', filterRecords);
+            document.getElementById('filter-select').addEventListener('change', filterRecords);
+
+            // 写真のアップロード
+            document.getElementById('photo-upload').addEventListener('change', handlePhotoUpload);
+
+            // データのエクスポート
+            document.getElementById('export-data').addEventListener('click', exportData);
+
+            // データのインポート
+            document.getElementById('import-data').addEventListener('change', handleDataImport);
+
+            // データの削除
+            document.getElementById('clear-data').addEventListener('click', clearAllData);
+        }
+
+        // 記録の保存
+        function saveRecord() {
+            const recordId = document.getElementById('record-form').dataset.editId;
+            const record = {
+                id: recordId || Date.now().toString(),
+                date: document.getElementById('record-date').value,
+                trainNumber: document.getElementById('train-number').value,
+                route: document.getElementById('route').value,
+                operator: document.getElementById('operator').value,
+                carSeat: document.getElementById('car-seat').value,
+                trainType: document.getElementById('train-type').value,
+                notes: document.getElementById('notes').value,
+                photos: JSON.parse(localStorage.getItem('tempPhotos') || '[]'),
+                timestamp: Date.now()
+            };
+
+            let records = JSON.parse(localStorage.getItem('trainRecords') || '[]');
+            
+            if (recordId) {
+                // 更新
+                const index = records.findIndex(r => r.id === recordId);
+                records[index] = record;
+            } else {
+                // 新規追加
+                records.push(record);
+            }
+
+            localStorage.setItem('trainRecords', JSON.stringify(records));
+            localStorage.removeItem('tempPhotos'); // 一時的な写真を削除
+
+            // フォームをリセット
+            document.getElementById('record-form').reset();
+            document.getElementById('photo-preview').innerHTML = '';
+            document.getElementById('record-form').removeAttribute('data-edit-id');
+            
+            // 今日の日付を再設定
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            document.getElementById('record-date').value = `${yyyy}-${mm}-${dd}`;
+
+            // リストを更新
+            loadRecords();
+            showView('list');
+            
+            // 通知
+            alert(recordId ? '記録が更新されました！' : '記録が保存されました！');
+        }
+
+        // 記録の読み込み
+        function loadRecords() {
+            const records = JSON.parse(localStorage.getItem('trainRecords') || '[]');
+            const recordsList = document.getElementById('records-list');
+            recordsList.innerHTML = '';
+
+            if (records.length === 0) {
+                recordsList.innerHTML = '<p class="text-center col-span-full">まだ運転記録がありません。新しい記録を追加してください。</p>';
+                return;
+            }
+
+            // 日付でソート（新しいものから）
+            records.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            records.forEach(record => {
+                const recordElement = createRecordElement(record);
+                recordsList.appendChild(recordElement);
+            });
+        }
+
+        // 記録要素の作成
+        function createRecordElement(record) {
+            const date = new Date(record.date);
+            const formattedDate = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`;
+            const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][date.getDay()];
+
+            const div = document.createElement('div');
+            div.className = 'jr-card jr-record-item';
+            div.innerHTML = `
+                <div class="p-4">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="text-lg font-bold">${record.trainNumber}</h3>
+                        <span class="jr-tag">${formattedDate} (${dayOfWeek})</span>
+                    </div>
+                    <p class="text-gray-700 mb-2">${record.route}</p>
+                    ${record.trainType ? `<p class="text-sm text-gray-600 mb-2">型式: ${record.trainType}</p>` : ''}
+                    ${record.photos && record.photos.length > 0 ? `
+                        <div class="mt-2">
+                            <img src="${record.photos[0]}" alt="列車写真" class="w-full h-40 object-cover rounded">
+                            ${record.photos.length > 1 ? `<p class="text-xs text-gray-500 mt-1">+${record.photos.length - 1} 枚の写真</p>` : ''}
+                        </div>
+                    ` : ''}
+                    <div class="flex justify-end mt-4 space-x-2">
+                        <button class="jr-btn text-sm px-3 py-1" onclick="editRecord('${record.id}')">
+                            <i data-lucide="edit" class="w-4 h-4 inline mr-1"></i>編集
+                        </button>
+                        <button class="jr-btn jr-btn-danger text-sm px-3 py-1" onclick="deleteRecord('${record.id}')">
+                            <i data-lucide="trash-2" class="w-4 h-4 inline mr-1"></i>削除
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // 詳細表示のためのクリックイベント
+            div.querySelector('h3, p, img').addEventListener('click', function() {
+                showRecordDetail(record.id);
+            });
+
+            return div;
+        }
+
+        // 記録の編集
+        function editRecord(id) {
+            const records = JSON.parse(localStorage.getItem('trainRecords') || '[]');
+            const record = records.find(r => r.id === id);
+
+            if (!record) return;
+
+            // フォームにデータを入力
+            document.getElementById('record-date').value = record.date;
+            document.getElementById('train-number').value = record.trainNumber;
+            document.getElementById('route').value = record.route;
+            document.getElementById('operator').value = record.operator || '';
+            document.getElementById('car-seat').value = record.carSeat || '';
+            document.getElementById('train-type').value = record.trainType || '';
+            document.getElementById('notes').value = record.notes || '';
+
+            // 写真のプレビュー
+            const photoPreview = document.getElementById('photo-preview');
+            photoPreview.innerHTML = '';
+            
+            if (record.photos && record.photos.length > 0) {
+                localStorage.setItem('tempPhotos', JSON.stringify(record.photos));
+                record.photos.forEach((photo, index) => {
+                    const imgContainer = document.createElement('div');
+                    imgContainer.className = 'relative';
+                    imgContainer.innerHTML = `
+                        <img src="${photo}" alt="列車写真" class="jr-photo-thumbnail">
+                        <button class="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center" onclick="removePhoto(${index})">
+                            <i data-lucide="x" class="w-3 h-3"></i>
+                        </button>
+                    `;
+                    photoPreview.appendChild(imgContainer);
+                });
+            }
+
+            // 編集モードに設定
+            document.getElementById('record-form').dataset.editId = id;
+            showView('add');
+        }
+
+        // 記録の削除
+        function deleteRecord(id) {
+            if (!confirm('この記録を削除してもよろしいですか？')) return;
+
+            let records = JSON.parse(localStorage.getItem('trainRecords') || '[]');
+            records = records.filter(r => r.id !== id);
+            localStorage.setItem('trainRecords', JSON.stringify(records));
+            
+            loadRecords();
+            updateStats();
+        }
+
+        // 記録の詳細表示
+        function showRecordDetail(id) {
+            const records = JSON.parse(localStorage.getItem('trainRecords') || '[]');
+            const record = records.find(r => r.id === id);
+
+            if (!record) return;
+
+            const date = new Date(record.date);
+            const formattedDate = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`;
+            const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][date.getDay()];
+
+            const detailContainer = document.getElementById('record-detail');
+            detailContainer.innerHTML = `
+                <div class="p-4">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h2 class="text-2xl font-bold">${record.trainNumber}</h2>
+                            <p class="text-gray-600">${formattedDate} (${dayOfWeek})</p>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="jr-btn text-sm" onclick="editRecord('${record.id}')">
+                                <i data-lucide="edit" class="w-4 h-4 inline mr-1"></i>編集
+                            </button>
+                            <button class="jr-btn jr-btn-danger text-sm" onclick="deleteRecord('${record.id}')">
+                                <i data-lucide="trash-2" class="w-4 h-4 inline mr-1"></i>削除
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="jr-divider"></div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <h3 class="font-bold text-gray-700 mb-2">走行区間</h3>
+                            <p>${record.route}</p>
+                        </div>
+                        ${record.trainType ? `
+                            <div>
+                                <h3 class="font-bold text-gray-700 mb-2">列車型式</h3>
+                                <p>${record.trainType}</p>
+                            </div>
+                        ` : ''}
+                        ${record.operator ? `
+                            <div>
+                                <h3 class="font-bold text-gray-700 mb-2">列車担当</h3>
+                                <p>${record.operator}</p>
+                            </div>
+                        ` : ''}
+                        ${record.carSeat ? `
+                            <div>
+                                <h3 class="font-bold text-gray-700 mb-2">車両 / 座席</h3>
+                                <p>${record.carSeat}</p>
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    ${record.notes ? `
+                        <div class="mb-4">
+                            <h3 class="font-bold text-gray-700 mb-2">備考</h3>
+                            <p>${record.notes.replace(/\n/g, '<br>')}</p>
+                        </div>
+                    ` : ''}
+
+                    ${record.photos && record.photos.length > 0 ? `
+                        <div>
+                            <h3 class="font-bold text-gray-700 mb-2">写真</h3>
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                ${record.photos.map(photo => `
+                                    <img src="${photo}" alt="列車写真" class="w-full h-40 object-cover rounded cursor-pointer" onclick="showPhotoModal('${photo}')">
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+
+            lucide.createIcons();
+            showView('detail');
+        }
+
+        // 写真のアップロード処理
+        function handlePhotoUpload(e) {
+            const files = Array.from(e.target.files);
+            const photoPreview = document.getElementById('photo-preview');
+            let tempPhotos = JSON.parse(localStorage.getItem('tempPhotos') || '[]');
+
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const photoData = event.target.result;
+                    tempPhotos.push(photoData);
+                    localStorage.setItem('tempPhotos', JSON.stringify(tempPhotos));
+
+                    const index = tempPhotos.length - 1;
+                    const imgContainer = document.createElement('div');
+                    imgContainer.className = 'relative';
+                    imgContainer.innerHTML = `
+                        <img src="${photoData}" alt="列車写真" class="jr-photo-thumbnail">
+                        <button class="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center" onclick="removePhoto(${index})">
+                            <i data-lucide="x" class="w-3 h-3"></i>
+                        </button>
+                    `;
+                    photoPreview.appendChild(imgContainer);
+                    lucide.createIcons();
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // 写真の削除
+        function removePhoto(index) {
+            let tempPhotos = JSON.parse(localStorage.getItem('tempPhotos') || '[]');
+            tempPhotos.splice(index, 1);
+            localStorage.setItem('tempPhotos', JSON.stringify(tempPhotos));
+            
+            // プレビューを更新
+            const photoPreview = document.getElementById('photo-preview');
+            photoPreview.innerHTML = '';
+            
+            tempPhotos.forEach((photo, idx) => {
+                const imgContainer = document.createElement('div');
+                imgContainer.className = 'relative';
+                imgContainer.innerHTML = `
+                    <img src="${photo}" alt="列車写真" class="jr-photo-thumbnail">
+                    <button class="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center" onclick="removePhoto(${idx})">
+                        <i data-lucide="x" class="w-3 h-3"></i>
+                    </button>
+                `;
+                photoPreview.appendChild(imgContainer);
+            });
+            lucide.createIcons();
+        }
+
+        // 記録のフィルタリング
+        function filterRecords() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            const filterType = document.getElementById('filter-select').value;
+            const records = JSON.parse(localStorage.getItem('trainRecords') || '[]');
+            const recordsList = document.getElementById('records-list');
+            recordsList.innerHTML = '';
+
+            let filteredRecords = records;
+
+            if (searchTerm) {
+                filteredRecords = records.filter(record => {
+                    switch (filterType) {
+                        case 'date':
+                            return record.date.toLowerCase().includes(searchTerm);
+                        case 'train':
+                            return record.trainNumber.toLowerCase().includes(searchTerm);
+                        case 'route':
+                            return record.route.toLowerCase().includes(searchTerm);
+                        default:
+                            return record.trainNumber.toLowerCase().includes(searchTerm) ||
+                                   record.route.toLowerCase().includes(searchTerm) ||
+                                   record.date.toLowerCase().includes(searchTerm) ||
+                                   (record.trainType && record.trainType.toLowerCase().includes(searchTerm)) ||
+                                   (record.operator && record.operator.toLowerCase().includes(searchTerm));
+                    }
+                });
+            }
+
+            // 日付でソート（新しいものから）
+            filteredRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            if (filteredRecords.length === 0) {
+                recordsList.innerHTML = '<p class="text-center col-span-full">検索結果がありません。</p>';
+                return;
+            }
+
+            filteredRecords.forEach(record => {
+                const recordElement = createRecordElement(record);
+                recordsList.appendChild(recordElement);
+            });
+        }
+
+        // 統計の更新
+        function updateStats() {
+            const records = JSON.parse(localStorage.getItem('trainRecords') || '[]');
+            
+            // 総運転回数
+            document.getElementById('total-records').textContent = records.length;
+            
+            // 異なる列車数
+            const uniqueTrains = new Set(records.map(r => r.trainNumber));
+            document.getElementById('total-trains').textContent = uniqueTrains.size;
+            
+            // 異なる区間数
+            const uniqueRoutes = new Set(records.map(r => r.route));
+            document.getElementById('total-routes').textContent = uniqueRoutes.size;
+            
+            // 月間運転回数のチャート
+            updateMonthlyChart(records);
+        }
+
+        // 月間運転回数のチャートの更新
+        function updateMonthlyChart(records) {
+            const monthlyData = {};
+            
+            // 過去12ヶ月のデータを初期化
+            for (let i = 11; i >= 0; i--) {
+                const date = new Date();
+                date.setMonth(date.getMonth() - i);
+                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                monthlyData[monthKey] = 0;
+            }
+            
+            // 記録を集計
+            records.forEach(record => {
+                const date = new Date(record.date);
+                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                if (monthlyData[monthKey] !== undefined) {
+                    monthlyData[monthKey]++;
+                }
+            });
+            
+            // チャートのデータを準備
+            const labels = Object.keys(monthlyData).map(key => {
+                const [year, month] = key.split('-');
+                return `${year}年${month}月`;
+            });
+            const data = Object.values(monthlyData);
+            
+            // チャートを作成または更新
+            const ctx = document.getElementById('monthly-chart').getContext('2d');
+            
+            if (window.monthlyChart) {
+                window.monthlyChart.data.labels = labels;
+                window.monthlyChart.data.datasets[0].data = data;
+                window.monthlyChart.update();
+            } else {
+                window.monthlyChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: '運転回数',
+                            data: data,
+                            backgroundColor: '#007b3e',
+                            borderColor: '#007b3e',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    stepSize: 1
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // データのエクスポート
+        function exportData() {
+            const records = JSON.parse(localStorage.getItem('trainRecords') || '[]');
+            const dataStr = JSON.stringify(records, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = `train-records-${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+        }
+
+        // データのインポート処理
+        function handleDataImport(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const importedData = JSON.parse(event.target.result);
+                    
+                    if (!Array.isArray(importedData)) {
+                        throw new Error('無効なデータ形式です。');
+                    }
+                    
+                    if (!confirm('インポートすると既存のデータが上書きされます。よろしいですか？')) {
+                        return;
+                    }
+                    
+                    localStorage.setItem('trainRecords', JSON.stringify(importedData));
+                    loadRecords();
+                    updateStats();
+                    showView('list');
+                    alert('データのインポートが成功しました！');
+                } catch (error) {
+                    alert('データのインポートに失敗しました: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // すべてのデータの削除
+        function clearAllData() {
+            if (!confirm('本当にすべてのデータを削除してもよろしいですか？この操作は元に戻すことができません。')) {
+                return;
+            }
+            
+            localStorage.removeItem('trainRecords');
+            localStorage.removeItem('tempPhotos');
+            loadRecords();
+            updateStats();
+            alert('すべてのデータが削除されました。');
+        }
+
+        // 写真モーダルの表示
+        function showPhotoModal(photoSrc) {
+            // シンプルなモーダルを作成
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50';
+            modal.innerHTML = `
+                <div class="bg-white p-2 rounded-lg max-w-4xl w-full mx-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-lg font-bold">写真</h3>
+                        <button class="text-gray-500 hover:text-gray-700" onclick="closePhotoModal()">
+                            <i data-lucide="x" class="w-6 h-6"></i>
+                        </button>
+                    </div>
+                    <img src="${photoSrc}" alt="列車写真" class="w-full h-auto">
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            document.body.style.overflow = 'hidden';
+            lucide.createIcons();
+        }
+
+        // 写真モーダルの閉鎖
+        function closePhotoModal() {
+            const modal = document.querySelector('.fixed.inset-0.bg-black.bg-opacity-75');
+            if (modal) {
+                modal.remove();
+                document.body.style.overflow = '';
+            }
+        }
+
+        // モーダルの背景をクリックして閉じる
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('bg-black')) {
+                closePhotoModal();
+            }
+        });
+    </script>
+</body>
 </html>
