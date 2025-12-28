@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>生成PWA图标</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: linear-gradient(135deg, #007b3e, #006935);
+            color: white;
+            text-align: center;
+        }
+        .icon-canvas {
+            margin: 20px;
+            display: inline-block;
+        }
+        canvas {
+            border: 2px solid white;
+            margin: 10px;
+            background: white;
+        }
+        .controls {
+            margin: 20px;
+        }
+        button {
+            background: white;
+            color: #007b3e;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚄 列车记录应用图标生成器</h1>
+    <p>这个工具将生成所有需要的PWA图标文件</p>
+    
+    <div class="controls">
+        <button onclick="generateAllIcons()">生成所有图标</button>
+        <button onclick="downloadIcon(192)">下载192x192</button>
+        <button onclick="downloadIcon(512)">下载512x512</button>
+    </div>
+    
+    <div id="icons-container">
+        <div class="icon-canvas">
+            <h3>192x192</h3>
+            <canvas id="icon-192" width="192" height="192"></canvas>
+        </div>
+        <div class="icon-canvas">
+            <h3>512x512</h3>
+            <canvas id="icon-512" width="512" height="512"></canvas>
+        </div>
+    </div>
+
+    <script>
+        function drawTrainIcon(canvas, size) {
+            const ctx = canvas.getContext('2d');
+            
+            // 清空画布
+            ctx.clearRect(0, 0, size, size);
+            
+            // 背景渐变
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#007b3e');
+            gradient.addColorStop(1, '#006935');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+            
+            // 绘制列车图标
+            ctx.fillStyle = 'white';
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = size * 0.02;
+            
+            const centerX = size / 2;
+            const centerY = size / 2;
+            const trainWidth = size * 0.6;
+            const trainHeight = size * 0.3;
+            
+            // 列车主体
+            ctx.fillRect(centerX - trainWidth/2, centerY - trainHeight/2, trainWidth, trainHeight);
+            
+            // 列车头
+            ctx.beginPath();
+            ctx.moveTo(centerX + trainWidth/2, centerY - trainHeight/2);
+            ctx.lineTo(centerX + trainWidth/2 + size*0.1, centerY);
+            ctx.lineTo(centerX + trainWidth/2, centerY + trainHeight/2);
+            ctx.closePath();
+            ctx.fill();
+            
+            // 窗户
+            const windowSize = size * 0.06;
+            const windowSpacing = size * 0.08;
+            const startX = centerX - trainWidth/2 + size*0.05;
+            const windowY = centerY - windowSize/2;
+            
+            for (let i = 0; i < 3; i++) {
+                ctx.fillRect(startX + i * windowSpacing, windowY, windowSize, windowSize);
+            }
+            
+            // 车轮
+            const wheelRadius = size * 0.04;
+            const wheelY = centerY + trainHeight/2 + size*0.02;
+            const wheelSpacing = size * 0.15;
+            
+            for (let i = -1; i <= 1; i++) {
+                ctx.beginPath();
+                ctx.arc(centerX + i * wheelSpacing, wheelY, wheelRadius, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+            
+            // 轨道
+            const railY = centerY + trainHeight/2 + size*0.08;
+            ctx.lineWidth = size * 0.01;
+            ctx.beginPath();
+            ctx.moveTo(centerX - trainWidth/2, railY);
+            ctx.lineTo(centerX + trainWidth/2 + size*0.1, railY);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(centerX - trainWidth/2, railY + size*0.03);
+            ctx.lineTo(centerX + trainWidth/2 + size*0.1, railY + size*0.03);
+            ctx.stroke();
+        }
+        
+        function generateAllIcons() {
+            drawTrainIcon(document.getElementById('icon-192'), 192);
+            drawTrainIcon(document.getElementById('icon-512'), 512);
+            alert('图标生成完成！');
+        }
+        
+        function downloadIcon(size) {
+            const canvas = document.getElementById(`icon-${size}`);
+            const link = document.createElement('a');
+            link.download = `icon-${size}x${size}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+        
+        // 页面加载时自动生成图标
+        window.onload = function() {
+            generateAllIcons();
+        };
+    </script>
+</body>
+</html>
